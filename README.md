@@ -1,6 +1,6 @@
 - 👋 Hi, I’m @MartynaES
 - 👀 I’m interested in data analysis, mathematical modeling and machine learning.
-- 🌱 I’m currently learning Python.
+- 🌱 I’m currently learning Python. yay!
 - 💞️ I’m looking to collaborate on any project connected to my intrests.
 - 📫 How to reach me: martynastalmach163@gmail.com, https://www.linkedin.com/in/martyna-stalmach-ba94a4233/
 - 😄 Pronouns: She/her
