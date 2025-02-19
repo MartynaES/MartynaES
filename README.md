@@ -21,7 +21,7 @@ She/her
 I am addicted to dancing, skiing, and sailing. It keeps life exciting and full of adventures!
 
 ### 📂 Portfolio:
-- [Analiza ekonomiczna krajów UE - opis](Analiza ekonomiczna krajów UE-opis.docx)
+- [Analiza ekonomiczna krajów UE - opis](https://github.com/MartynaES/MartynaES/blob/main/StatystykaPublicznaGKMS.pdf)
 - [Analiza ekonomiczna krajów UE](https://github.com/MartynaES/MartynaES/blob/main/Analiza%20ekonomiczna%20kraj%C3%B3w%20UE.R)
 - [Prognoza ARIMA dla VOOG](https://github.com/MartynaES/MartynaES/blob/main/Prognoza%20ARIMA%20dla%20VOOG.R)
 - [Projekt Tarantino Stalmach Koczy](Projekt_tarantino_Stalmach_Koczy%20(1).html)
