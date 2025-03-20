@@ -100,9 +100,9 @@ From the above table, we can infer, for example, the average movie duration, the
 | *year*               | release year                           |
 | *duration*           | movie duration                         |
 
-## Analyses
+# Analyses
 
-# Topics Covered in the Analysis
+### Topics Covered in the Analysis
 
 1. Analysis of Profanities
 - Examined the number of profanities across different time periods.
@@ -251,7 +251,7 @@ tarantino %>%
 
 The chart leaves no doubt as to which racist slur is most frequently used. In Django and Jackie Brown, no other slurs were used. However, in the former, it was uttered nearly three times as often. A rising trend in the use of the n-word can be observed (with the exception of Inglorious Basterds).
 
-##Analysis of Bleed-Outs 
+## Analysis of Bleed-Outs 
 
 In this section, the percentage correlation of bleed-outs at specific stages (time intervals) of the movie was re-examined.
 
@@ -297,7 +297,8 @@ tarantino %>%
 
 In this analysis, we can see that the highest number of bleed-outs occurs in the movie Kill Bill: Vol. 1. Considering the previous chart, it can be inferred that most of them happened between the 60th and 90th minute.
 
-##Combined Analysis
+## Combined Analysis
+
 At this point in the analysis, the relationship between profanities and deaths was investigated to determine whether they are interdependent.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
