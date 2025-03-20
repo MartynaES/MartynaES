@@ -1,0 +1,445 @@
+---
+title: 'A Bloody and Profane Affair: Exploring Tarantino Films'
+author: "Martyna Stalmach"
+date: "2022-06-06"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    code_folding: hide
+  pdf_document:
+    toc: true
+    toc_depth: '2'
+  word_document:
+    toc: true
+    toc_depth: '2'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) # For R Markdown files
+
+# Load necessary libraries
+library(fivethirtyeight)
+library(tidyverse)
+library(summarytools)
+library(gt)
+library(kableExtra)
+```
+
+# Introduction
+
+The goal of the project is to explore data on movies directed by Quentin Tarantino. The data was collected by a journalist from FiveThirtyEight.
+
+# Data Processing
+
+The data was loaded directly from the RStudio package. We added columns bled_out_or_cursed, year, and duration containing the following information:
+
+*Information on whether there was bleeding or a profanity spoken at a given minute* Year of release \*Movie duration
+
+```{r echo=FALSE, warning=FALSE}
+tarantino <- tarantino %>%
+  mutate(
+    duration = case_when(
+      movie == "Reservoir Dogs" ~ 99,
+      movie == "Pulp Fiction" ~ 154,
+      movie == "Kill Bill: Vol. 1" ~ 111,
+      movie == "Kill Bill: Vol. 2" ~ 137,
+      movie == "Inglorious Basterds" ~ 153,
+      movie == "Django Unchained" ~ 165,
+      movie == "Jackie Brown" ~ 160,
+      TRUE ~ NA_real_
+    ),
+    year = case_when(
+      movie == "Reservoir Dogs" ~ 1992,
+      movie == "Pulp Fiction" ~ 1994,
+      movie == "Kill Bill: Vol. 1" ~ 2003,
+      movie == "Kill Bill: Vol. 2" ~ 2004,
+      movie == "Inglorious Basterds" ~ 2009,
+      movie == "Django Unchained" ~ 2012,
+      movie == "Jackie Brown" ~ 1997,
+      TRUE ~ NA_real_
+    ),
+    bled_out_or_cursed = case_when(
+      profane == FALSE ~ "bled out",
+      profane == TRUE ~ "cursed",
+      TRUE ~ NA_character_
+    )
+  )
+
+tarantino$duration <- as.numeric(tarantino$duration)
+
+```
+
+The summary statistics of selected variables are as follows:
+
+```{r echo=FALSE, warning=FALSE}
+
+# Create a summary statistics table
+df_summary <- tarantino %>%
+  select(movie, profane, word, minutes_in, year, duration, bled_out_or_cursed) 
+
+# Pretty descriptive stats
+print(dfSummary(df_summary), method = "render")
+
+```
+
+From the above table, we can infer, for example, the average movie duration, the first and last minute in which a profanity or death occurs, as well as the total number of profanities and deaths across all films.
+
+## Variables Used
+
+| Variable             | Description                            |
+|----------------------|----------------------------------------|
+| *movie*              | movie                                  |
+| *profane*            | whether it's a profanity (False, True) |
+| *word*               | spoken word                            |
+| *minutes_in*         | time in minutes                        |
+| *bled_out_or_cursed* | bleeding out or curse                  |
+| *year*               | release year                           |
+| *duration*           | movie duration                         |
+
+## Analyses
+
+# Topics Covered in the Analysis
+
+1. Analysis of Profanities
+- Examined the number of profanities across different time periods.
+- Categorized the types of profanities used.
+- Analyzed the effect of time on their frequency and type.
+
+2. Analysis of Deaths
+- Explored the number and percentage of deaths across various time periods and films.
+
+3. Comparative Analysis
+- Investigated instances where a profanity and a death occur simultaneously or within a close time frame.
+- Compared the overall numbers of profanities and deaths across films.
+
+
+## Profanity Analysis
+
+The goal of this analysis is to check if there is any relationship between the number of profanities and the film's progress, and which types of profanities dominated in each movie.
+
+```{r pressure, echo=FALSE, message=FALSE}
+
+tarantino %>%
+  filter(!is.na(word)) %>%
+  group_by(minutes_in, movie, duration) %>%
+  mutate(m = cut(
+    minutes_in / duration, 
+    breaks = seq(0, 1, by = 0.2), 
+    labels = c("0-20%", "20-40%", "40-60%", "60-80%", "80-100%")
+  )) %>%
+  group_by(m, movie) %>%
+  summarise(ilosc_wprz = length(word), .groups = "drop") %>%
+  ggplot(aes(x = m, y = ilosc_wprz, fill = movie)) +
+  geom_col(color = "white", width = 0.7) +
+  xlab("Time Periods (% of Runtime)") +
+  ylab("Number of Profanities") +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  ggtitle("Number of Profanities in Tarantino Films (Normalized by Runtime)") +
+  scale_fill_manual(values = c("lightgreen", "violet", "purple", "orange", "yellow", "lightblue", "pink"), name = "Tarantino Films")
+
+
+
+```
+
+*Reservoir Dogs* is not, however, the most profane movie among those listed here. *Pulp Fiction* contains over a quarter of all the profanities. This is more than twice the number found in *Kill Bill: Vol. 1*, *Kill Bill: Vol. 2*, and *Inglorious Basterds* combined. It's worth noting, however, that the Kill Bill films are quite specific works of Tarantino, where, amidst the fight scenes, there wasn't much room for profanity.
+
+```{r}
+# Data pipeline with duration column for percentage intervals
+percentage_table <- tarantino %>%
+  filter(!is.na(word)) %>%
+  group_by(movie) %>%
+  mutate(percent_time = cut(
+    minutes_in / duration, 
+    breaks = seq(0, 1, by = 0.25), 
+    labels = c("0-25%", "25-50%", "50-75%", "75-100%")
+  )) %>%
+  group_by(percent_time, movie) %>%
+  summarise(word_count = n(), .groups = "drop") %>%
+  pivot_wider(
+    names_from = percent_time, 
+    values_from = word_count, 
+    values_fill = 0
+  ) %>%
+  gt() %>%
+  tab_header(
+    title = "Word Distribution Across Percentage of Movie Runtime",
+    subtitle = "Normalized Using Movie Duration"
+  ) %>%
+  cols_label(
+    `0-25%` = "0-25%",
+    `25-50%` = "25-50%",
+    `50-75%` = "50-75%",
+    `75-100%` = "75-100%"
+  ) %>%
+  fmt_number(
+    columns = everything(),
+    decimals = 0
+  ) %>%
+  opt_table_outline() %>%
+  opt_row_striping()
+
+# Display the table
+percentage_table
+
+
+```
+
+From the above data, we observe that the distribution of profanities is not uniform across movies or time periods. The most profanities occur in the initial 25% of *Jackie Brown* (144 instances), followed by *Pulp Fiction* (127 instances). In contrast, *Inglorious Basterds* consistently exhibits the fewest profanities in all time intervals, with 15 occurrences in the first 25% of runtime and a similar pattern throughout.
+
+In terms of overall trends, *Reservoir Dogs* stands out for maintaining a consistently high number of profanities across all percentage intervals, particularly peaking in the 25–50% range (133 instances). However, caution should be exercised when analyzing the final time interval (75–100%) for *Kill Bill: Vol. 1* and *Reservoir Dogs*, as their shorter runtimes (111 and 99 minutes, respectively) mean these values represent less runtime compared to longer films.
+
+This analysis highlights both the relative intensity and timing of profanity usage across Tarantino's films, offering insight into pacing and dialogue density.
+
+```{r, echo=FALSE, message=FALSE}
+tarantino %>% 
+  filter(profane == TRUE) %>% 
+  count(movie) %>% 
+  mutate(perc = n / sum(n) * 100) %>% 
+  ggplot(aes(x = movie, y = n)) +
+  geom_col(color = "blue", fill = "white") +
+  geom_text(aes(x = movie, y = n, label = paste0(n, " (", round(perc, 1), "%)")), vjust = -0.5) +
+  theme_bw() +
+  labs(title = "Quantity and percentage of profanities in each movie") +
+  xlab("Movie title") + 
+  ylab("Number of profanities") + 
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0,550)) + # Adjust the range of the y-axis
+  theme(legend.position = "none") + 
+  theme(axis.text.x = element_text(angle = 10))
+
+
+
+```
+
+
+
+```{r, echo= FALSE, message= FALSE}
+tarantino %>% 
+  filter(word %in% c("dick", "ass", "asses", "dicks", "pussy")) %>% 
+  group_by(movie, word) %>% 
+  summarise(n = n()) %>% 
+  ggplot(aes(y = word, x = n, fill = movie)) + 
+  geom_col() +
+  facet_grid(rows = vars(movie)) +
+  theme(strip.text.y = element_text(angle = 0)) +
+  ggtitle("Number of body-related words in each movie") + 
+  xlab("Quantity") + 
+  theme(legend.position = "none") + 
+  ylab("Words")
+
+```
+
+The word "ass" stands out here, appearing repeatedly in every film. Ass-related words are also the largest group among body-related terms. The graph also shows that Reservoir Dogs is the most diverse in this category of vocabulary.
+
+```{r, echo= FALSE, message= FALSE}
+tarantino %>% 
+  unite("moy", c(movie, year), sep = "\n", remove = FALSE) %>% 
+  filter(word %in% c("n-word", "negro", "jap", "squaw", "gooks", "gook", "slope")) %>% 
+  group_by(moy, word) %>% 
+  summarise(n = n()) %>% 
+  ggplot(aes(y = moy, x = n, fill = word)) +
+  geom_col(alpha = 0.8, position = "dodge", color = "white") +
+  theme_bw() +
+  xlab("Count") +
+  ylab("Movie and Year of Release") +
+  ggtitle("Number of Racist Slurs in Movies by Year")
+```
+
+The chart leaves no doubt as to which racist slur is most frequently used. In Django and Jackie Brown, no other slurs were used. However, in the former, it was uttered nearly three times as often. A rising trend in the use of the n-word can be observed (with the exception of Inglorious Basterds).
+
+##Analysis of Bleed-Outs 
+
+In this section, the percentage correlation of bleed-outs at specific stages (time intervals) of the movie was re-examined.
+
+```{r, echo=FALSE, message=FALSE}
+tarantino %>%
+  filter(bled_out_or_cursed == "bled out") %>%
+  group_by(movie, minutes_in, duration) %>% # Assuming 'duration' column exists
+  mutate(m = cut(
+    minutes_in / duration, 
+    breaks = seq(0, 1, by = 0.2), 
+    labels = c("0-20%", "20-40%", "40-60%", "60-80%", "80-100%")
+  )) %>%
+  group_by(m, movie, bled_out_or_cursed) %>%
+  summarise(l.bled_out = n(), .groups = "drop") %>%
+  ggplot(aes(x = m, y = l.bled_out, fill = movie)) +
+  geom_col(position = "fill", color = "white", width = 0.7) +
+  theme_bw() +
+  theme(legend.position = "top") +
+  xlab("Time Intervals (% of Runtime)") +
+  ylab("Percentage of Bleed-Outs")
+```
+
+The first noticeable trend is the dominant presence of **Django Unchained** across most time intervals, particularly in the **early and later stages** of the movies. **Inglorious Basterds** also plays a significant role, particularly in the **first and final segments**, though it is absent in the **40–60% interval**, where **Kill Bill: Vol. 1** becomes the most prominent contributor. The presence of **Kill Bill: Vol. 2** and **Pulp Fiction** is relatively minor, with only small contributions throughout. It is important to note that this is a **percentage-based chart**, meaning that higher proportions of bleed-out scenes do not necessarily indicate a higher absolute number of deaths in a given interval, but rather that **fewer or no deaths occurred in other movies during that period**.
+
+```{r, echo=FALSE, message=FALSE}
+tarantino %>% 
+  filter(profane == FALSE) %>% 
+  count(movie) %>% 
+  mutate(perc = n / sum(n) * 100) %>% 
+  ggplot(aes(x = movie, y = n)) +
+  geom_col(fill = "white", color = "red", lwd = 0.8, width = 0.8) +
+  geom_text(aes(x = movie, y = n, label = paste0(n, " (", round(perc, 1), "%)"), 
+                vjust = -0.5)) +
+  theme_bw() +
+  labs(title = "Quantitative and Percentage Comparison of Deaths for Individual Movies") +
+  xlab("Movie Title") + 
+  ylab("Number of Deaths") +
+   scale_y_continuous(breaks = scales::pretty_breaks(n = 10), limits = c(0,75))+
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 10))
+
+```
+
+In this analysis, we can see that the highest number of bleed-outs occurs in the movie Kill Bill: Vol. 1. Considering the previous chart, it can be inferred that most of them happened between the 60th and 90th minute.
+
+##Combined Analysis
+At this point in the analysis, the relationship between profanities and deaths was investigated to determine whether they are interdependent.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+tarantino %>% 
+  group_by(movie, profane) %>% 
+  summarise(first = min(minutes_in)) %>% 
+  ggplot(aes(x = movie, y = first, fill = profane)) +
+  geom_point(size = 3, shape = 23) +
+  theme_bw() +
+  xlab(" ") +
+  ylab("Duration of the Movie") +
+  scale_fill_discrete(labels = c("First Death", "First Profanity")) +
+  guides(fill = guide_legend(title = "Legend")) +
+  theme(axis.text.x = element_text(angle = 10))
+
+
+```
+
+```{r}
+
+pretty_table <- tarantino %>%
+  group_by(movie, profane) %>%
+  summarise(first = min(minutes_in), .groups = "drop") %>%
+  gt() %>% 
+  tab_header(
+    title = "First Appearance of Profanities by Movie",
+    subtitle = "Grouped by Movie and Profanity Status"
+  ) %>%
+  fmt_number(
+    columns = "first",
+    decimals = 2
+  ) %>%
+  cols_label(
+    movie = "Movie Title",
+    profane = "Profane",
+    first = "First Appearance (Minutes)"
+  ) %>%
+  opt_table_outline() %>% 
+  opt_row_striping() # Adds striped rows for easier reading
+
+# Display the pretty table
+pretty_table
+
+```
+
+From the chart and table, we can see that all the first profanities occurred within the first two quarters of an hour. The same would be true for deaths, if not for *Reservoir Dogs*. In that movie, the first bleed-out happens only after an hour. Interestingly, this is also the film with the earliest profanity, which occurs in the very first minute. In *Django Unchained*, both the first profanity and the first death happen almost simultaneously, suggesting the intensity of the scene.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+tarantino %>% 
+  unite("moy", c(movie, duration), sep = "\n", remove = FALSE) %>% 
+  group_by(moy, minutes_in, bled_out_or_cursed) %>%
+  summarise(n = n()) %>% 
+  ggplot(aes(x = minutes_in, y = n, fill = bled_out_or_cursed, color = bled_out_or_cursed)) +
+  geom_col(binwidth = 1, alpha = 0.8) + # Add transparency for better layering
+  facet_grid(rows = vars(moy), space = "fixed", scales = "free_y") + # Allow y-axis to adjust per facet
+  ylab("Number of Profanities and Deaths") +
+  xlab("Minutes") +
+  scale_x_continuous(breaks = seq(0, 170, 10)) + # Simplified sequence
+  scale_fill_brewer(palette = "Set2") + # Use a colorblind-friendly palette
+  scale_color_brewer(palette = "Set2") +
+  theme_bw() +
+  theme(
+    legend.position = "top",
+    legend.title = element_blank(), # Remove legend title for simplicity
+    strip.text.y = element_text(angle = 0, face = "bold"), # Bold facet labels
+    axis.text.x = element_text(angle = 45, hjust = 1), # Rotate x-axis labels for readability
+    panel.grid.major = element_line(color = "gray90") # Subtle grid lines
+  ) +
+  ylim(0, 10) +
+  coord_cartesian(clip = "off") # Prevent clipping of elements (initial code here)
+
+
+
+
+```
+
+From the above chart, we can observe how the data of interest is distributed over time. It is evident that the very end of the films is usually calm. After intense climactic scenes, the director gives the audience a moment to rest. The chart also confirms what we previously suspected: in *Kill Bill: Vol. 1*, there was indeed a long, bloody scene.
+
+```{r, echo=FALSE, message=FALSE}
+# Calculate the percentage table
+percentage_table <- prop.table(table(tarantino$movie, tarantino$bled_out_or_cursed), margin = 2) * 100
+
+# Round the table values and add a percentage sign
+formatted_table <- round(percentage_table, 2) %>%
+  apply(2, function(x) paste0(x, "%"))
+
+# Create a pretty table using kable with column separators
+kable(formatted_table, caption = "Percentage of Bled Out or Cursed by Movie", 
+      format = "pipe", 
+      col.names = colnames(formatted_table)) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+
+```
+
+This table shows the percentage ratio of bleed-outs and profanities. The highest percentage of profanities is spoken in *Pulp Fiction*. Meanwhile, the fewest people bleed out in *Jackie Brown*. An interesting observation is that the percentage of bleed-outs in *Django Unchained* is the same as the percentage of profanities in *Reservoir Dogs*.
+
+```{r, echo=FALSE, message=FALSE}
+
+
+# Create the summarized and pivoted table
+pretty_table <- tarantino %>% 
+  group_by(movie, profane, year) %>% 
+  summarise(death_per_min = n() / mean(duration), .groups = "drop") %>%
+  arrange(year) %>% 
+  pivot_wider(names_from = profane, values_from = death_per_min) 
+
+# Format the table with kable and add styling
+pretty_table %>%
+  kable(caption = "Deaths and Profanities per Minute by Movie (Chronologically)", 
+        digits = 2) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+
+The final table summarizes the relationship between deaths (FALSE) and profanities (TRUE) over time (in minutes). It shows that the bloodiest film was *Kill Bill: Vol. 1*, while the most profane was *Reservoir Dogs*, which is also Tarantino's first film chronologically.
+
+# Conclusions
+
+1.  The most profane Tarantino film is his debut, *Reservoir Dogs*. However, the film with the highest number of profanities is *Pulp Fiction*, his second film chronologically.
+
+2.  The film with the highest number of deaths and the highest death-to-runtime ratio is *Kill Bill: Vol. 1* from 2003.
+
+3.  The most frequently used profanity was "ass," with a significant lead over the others.
+
+4.  Among racist slurs, the "n-word" had a dominant presence. Once it appeared in a film, its usage tended to increase over time.
+
+5.  With one exception (*Reservoir Dogs*), both the first death and the first profanity occur within the first 25 minutes of the films. However, they usually do not happen immediately one after the other.
+
+# What's Next?
+
+Further analyses could include:
+
+<ul>
+
+<li>Creating a similar dataset for Tarantino's entire filmography.</li>
+
+<li>Including not only profane words but also gestures.</li>
+
+<li>Expanding the database to include the budgets of individual productions.</li>
+
+<li>Analyzing the frequency of profanities over the years in the director's statements (social media, correspondence, interviews).</li>
+
+</ul>
